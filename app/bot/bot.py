@@ -8,7 +8,7 @@ from app.bot.handlers import router
 
 
 async def main():
-    bot = bot(token=settings.BOT_TOKEN)
+    bot = Bot(token=settings.BOT_TOKEN)
     dp = Dispatcher()
 
     # create service
