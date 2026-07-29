@@ -1,16 +1,20 @@
-from app.core.game import HangmanGame
+from app.services.game_service import GameService
 
-game = HangmanGame("python")
+service = GameService()
 
-print(game.masked_word())
+user_id = 1
 
-while not game.is_finished():
+service.start_game(user_id, "python")
+
+while service.has_active_game(user_id):
     letter = input("Enter a letter: ")
-    result = game.guess(letter)
+    result = service.guess(user_id, letter)
 
-    print(letter)
-    print(game.masked_word())
-    print("Attempts:", game.attempts_left())
+    game = service.get_game(user_id)
 
-print("Game finished:", game.status())
+    print(result)
+    if game:
+        print(game.masked_word())
+        print("Attempts:", game.attempts_left())
+
 
