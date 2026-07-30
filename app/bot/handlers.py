@@ -56,7 +56,10 @@ async def guess_handler(message: Message, game_service: GameService):
 
     # validation: is there a game
     if not game_service.has_active_game(user_id):
-        await message.answer('Start the game first: /start')
+        await message.answer(
+                'Start the game first',
+                reply_markup=new_game_keyboard()
+        )
         return
 
     try:
@@ -89,7 +92,10 @@ async def guess_handler(message: Message, game_service: GameService):
         
         response += f'\nThe word was: {outcome.word}'
         
-        await message.answer(response)
+        await message.answer(
+                response,
+                reply_markup=new_game_keyboard()
+        )
         return
 
     # usual state
