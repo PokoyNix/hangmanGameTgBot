@@ -53,7 +53,7 @@ class HangmanGame:
         return set(self._guessed_letters)
 
     def guessed_letters_str(self) -> str:
-        return ', '.join(sorted(self.guessed_letters)) or '-'
+        return ', '.join(sorted(self.guessed_letters())) or '-'
 
     # -------------------------
     # Internal logic
