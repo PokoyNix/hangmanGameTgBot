@@ -17,7 +17,7 @@ router = Router()
 async def start_handler(message: Message, game_service: GameService):
     user_id = message.from_user.id
 
-    game = game_service.start_game(user_id, "python")
+    game = game_service.start_game(user_id)
 
     await message.answer(
             f'Game has begun!\n\n'
@@ -74,8 +74,9 @@ async def guess_handler(message: Message, game_service: GameService):
 
     # usual state
     response += (
-            f'\n\n{game.masked_word()}'
+            f'\n\nWord: {game.masked_word()}'
             f'\nAttempts: {game.attempts_left()}'
+            f'\nLetters: {game.guessed_letters_str()}'
         )
     await message.answer(response)
 

@@ -1,12 +1,14 @@
 from app.core.game import HangmanGame
 from app.core.models import GuessResult
+from app.utils.word_loader import get_random_word
 
 
 class GameService:
     def __init__(self):
         self._games: dict[int, HangmanGame] = {}
 
-    def start_game(self, user_id: int, word: str) -> HangmanGame:
+    def start_game(self, user_id: int) -> HangmanGame:
+        word = get_random_word()
         game = HangmanGame(word)
         self._games[user_id] = game
         return game
