@@ -1,4 +1,5 @@
 from enum import Enum, auto
+from dataclasses import dataclass
 
 
 class GameStatus(Enum):
@@ -12,4 +13,10 @@ class GuessResult(Enum):
     INCORRECT = auto()
     ALREADY_GUESSED = auto()
     GAME_FINISHED = auto()
+
+
+@dataclass
+class GameOutcome:
+    status: GameStatus
+    word: str
 

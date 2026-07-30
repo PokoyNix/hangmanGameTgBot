@@ -33,6 +33,9 @@ class HangmanGame:
             self._attempts_left -= 1
             self._update_loss_condition()
             return GuessResult.INCORRECT
+
+    def word(self) -> str:
+        return self._word
         
     def masked_word(self) -> str:
         return " ".join(

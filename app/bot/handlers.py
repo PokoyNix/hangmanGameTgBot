@@ -1,11 +1,9 @@
-from email import message_from_binary_file
-
 from aiogram import Router
 from aiogram.types import Message
 from aiogram.filters import Command
 
 from app.services.game_service import GameService
-from app.core.models import GuessResult
+from app.core.models import GuessResult, GameStatus
 
 router = Router()
 
@@ -45,7 +43,7 @@ async def guess_handler(message: Message, game_service: GameService):
         return
 
     try:
-        result = game_service.guess(user_id, text)
+        result, outcome = game_service.guess(user_id, text)
     except ValueError:
         await message.answer('Game error')
         return
@@ -66,9 +64,14 @@ async def guess_handler(message: Message, game_service: GameService):
         response = ''
 
     # if game is end
-    if game is None:
-        # game has already been removed from service
-        response += '\n\nGame has been ended'
+    if outcome:
+        if outcome.status == GameStatus.WON:
+            response += f'\n\nWin!'
+        else:
+            response += f'\n\nLost!'
+        
+        response += f'\nThe word was: {outcome.word}'
+        
         await message.answer(response)
         return
 
