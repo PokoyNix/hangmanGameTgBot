@@ -11,7 +11,7 @@ from app.bot.keyboards import new_game_keyboard
 
 router = Router()
 
-ALLOWED_THREAD_IDS = (int(index) for index in settings.ALLOW_THREAD_IDS)
+ALLOWED_THREAD_IDS = settings.ALLOW_THREAD_IDS
 
 # -------------------------
 # START GAME
