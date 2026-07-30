@@ -6,7 +6,8 @@ WORDS_FILE = Path('data/words.txt')
 
 def load_words() -> list[str]:
     with open(WORDS_FILE, 'r', encoding='utf-8') as f:
-        return [line.strip().lower() for line in f if line.strip()]
+        words = f.readline().split()
+        return [line.strip().lower() for line in words if line.strip().isalpha()]
 
 
 def get_random_word() -> str:
