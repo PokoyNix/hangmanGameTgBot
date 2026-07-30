@@ -1,12 +1,17 @@
+from tkinter import ALL
+
 from aiogram import Router
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command
 
+from config import settings
 from app.services.game_service import GameService
 from app.core.models import GuessResult, GameStatus
 from app.bot.keyboards import new_game_keyboard
 
 router = Router()
+
+ALLOWED_THREAD_IDS = (int(index) for index in settings.ALLOW_THREAD_IDS)
 
 # -------------------------
 # START GAME
@@ -14,6 +19,10 @@ router = Router()
 
 @router.message(Command('start'))
 async def start_handler(message: Message):
+    if message.chat.type != 'private':
+        if message.message_thread_id not in ALLOWED_THREAD_IDS:
+            return
+
     await message.answer(
             f'Welcome to Hangman Game!\n\n' \
             f'Press button to start the game',
@@ -23,6 +32,10 @@ async def start_handler(message: Message):
 
 @router.callback_query(lambda c: c.data == 'new_game')
 async def new_game_handler(callback: CallbackQuery, game_service: GameService):
+    if callback.message.chat.type != 'private':
+        if callback.message.message_thread_id not in ALLOWED_THREAD_IDS:
+            return
+
     user_id = callback.from_user.id
 
     game = game_service.start_game(user_id)
@@ -41,6 +54,10 @@ async def new_game_handler(callback: CallbackQuery, game_service: GameService):
 
 @router.message()
 async def guess_handler(message: Message, game_service: GameService):
+    if message.chat.type != 'private':
+        if message.message_thread_id not in ALLOWED_THREAD_IDS:
+            return
+
     user_id = message.from_user.id
     text = message.text
 
