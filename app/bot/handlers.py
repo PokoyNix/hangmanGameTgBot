@@ -18,7 +18,8 @@ async def start_handler(message: Message):
             f'Welcome to Hangman Game!\n\n' \
             f'Press button to start the game',
             reply_markup=new_game_keyboard()
-        )
+    )
+    await message.answer(str(message.message_thread_id))
 
 
 @router.callback_query(lambda c: c.data == 'new_game')
