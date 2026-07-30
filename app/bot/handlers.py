@@ -42,7 +42,12 @@ async def new_game_handler(callback: CallbackQuery, game_service: GameService):
 @router.message()
 async def guess_handler(message: Message, game_service: GameService):
     user_id = message.from_user.id
-    text = message.text.strip().lower()
+    text = message.text
+
+    if not text:
+        return
+
+    text = text.strip().lower()
 
     # validation: one letter
     if len(text) != 1 or not text.isalpha():
