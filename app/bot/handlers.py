@@ -1,9 +1,10 @@
 from aiogram import Router
-from aiogram.types import Message
+from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command
 
 from app.services.game_service import GameService
 from app.core.models import GuessResult, GameStatus
+from app.bot.keyboards import new_game_keyboard
 
 router = Router()
 
@@ -12,16 +13,27 @@ router = Router()
 # -------------------------
 
 @router.message(Command('start'))
-async def start_handler(message: Message, game_service: GameService):
-    user_id = message.from_user.id
+async def start_handler(message: Message):
+    await message.answer(
+            f'Welcome to Hangman Game!\n\n' \
+            f'Press button to start the game',
+            reply_markup=new_game_keyboard()
+        )
+
+
+@router.callback_query(lambda c: c.data == 'new_game')
+async def new_game_handler(callback: CallbackQuery, game_service: GameService):
+    user_id = callback.from_user.id
 
     game = game_service.start_game(user_id)
 
-    await message.answer(
-            f'Game has begun!\n\n'
+    await callback.message.answer(
+            f'New game has begun!\n\n'
             f'{game.masked_word()}\n'
             f'Attempts: {game.attempts_left()}'
         )
+
+    await callback.answer()
 
 # -------------------------
 # GUESS LETTER
