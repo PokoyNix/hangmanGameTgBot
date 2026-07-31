@@ -9,7 +9,8 @@ from app.bot.handlers import router
 
 logger = logging.getLogger(__name__)
 
-async def start_bot():
+
+async def start_bot() -> None:
     '''
     Configure and start the Telegram bot.
 
@@ -20,12 +21,11 @@ async def start_bot():
     bot = Bot(token=settings.BOT_TOKEN)
     dp = Dispatcher()
 
-    # create service
+    logger.info('Initializing application services.')
     game_service = GameService()
+    logger.info('Services initialized.')
 
-    # throw in handlers
     dp['game_service'] = game_service
-
 
     dp.include_router(router)
     logger.info('Router registered.')
