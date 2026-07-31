@@ -1,16 +1,30 @@
 import random
 from pathlib import Path
 
-WORDS_FILE = Path('data/words.txt')
+WORDS_PATH = Path('data/words.txt')
 
 
 def load_words() -> list[str]:
-    with open(WORDS_FILE, 'r', encoding='utf-8') as f:
-        words = f.readline().split()
-        return [line.strip().lower() for line in words if line.strip().isalpha()]
+    '''
+    Load all valid words from the dictionary file.
+
+    Returns:
+        List of  lowercase words.
+    '''
+    with WORDS_PATH.open('r', encoding='utf-8') as file:
+        return [
+            line.strip().lower()
+            for line in file.read().split()
+            if line.strip().isalpha()
+        ]
+
+
+_WORDS = load_words()
 
 
 def get_random_word() -> str:
-    words = load_words()
-    return random.choice(words)
+    '''
+    Return a random word from the loaded dictionary.
+    '''
+    return random.choice(_WORDS)
 
