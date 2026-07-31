@@ -33,9 +33,9 @@ async def start_bot():
     await bot.set_my_commands([
         BotCommand(command='start', description='Start Game'),
     ])
-    logging.info('Bot commands configured.')
+    logger.info('Bot commands configured.')
 
-    logging.info('Starting polling...')
+    logger.info('Starting polling...')
     try:
         await dp.start_polling(bot)
     except Exception:
