@@ -1,26 +1,10 @@
 import asyncio
 
-from app.bot.bot import main
-# from app.services.game_service import GameService
-
-# service = GameService()
-
-# user_id = 1
-
-# service.start_game(user_id, "python")
-
-# while service.has_active_game(user_id):
-#    letter = input("Enter a letter: ")
-#    result = service.guess(user_id, letter)
-
-#    game = service.get_game(user_id)
-
-#    print(result)
-#    if game:
-#        print(game.masked_word())
-#        print("Attempts:", game.attempts_left())
+from app.bot.bot import start_bot
+from app.infrastructure.logging import configure_logging
 
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    configure_logging()
+    asyncio.run(start_bot())
 
