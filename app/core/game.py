@@ -3,10 +3,14 @@ from .models import GameStatus, GuessResult
 
 class HangmanGame:
     def __init__(self, word: str, max_attempts: int = 6):
+        word = word.strip().lower()
         if not word.isalpha():
             raise ValueError("Word must contain only letters")
+        
+        if max_attempts <= 0:
+            raise ValueError('Maximum attempts must be positive')
 
-        self._word: str = word.lower()
+        self._word: str = word
         self._guessed_letters: set[str] = set()
         self._attempts_left: int = max_attempts
         self._status: GameStatus = GameStatus.IN_PROGRESS
@@ -34,7 +38,7 @@ class HangmanGame:
             self._update_loss_condition()
             return GuessResult.INCORRECT
 
-    def word(self) -> str:
+    def reveal_word(self) -> str:
         return self._word
         
     def masked_word(self) -> str:
