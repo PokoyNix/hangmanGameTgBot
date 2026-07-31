@@ -20,7 +20,7 @@ class Settings:
 
     ALLOWED_THREAD_IDS: list[int] = [
             int(thread_id)
-            for thread_id in os.getenv('ALLOWED_THREAD_IDS').split(',')
+            for thread_id in os.getenv('ALLOWED_THREAD_IDS', '').split(',')
             if thread_id
     ]
 
