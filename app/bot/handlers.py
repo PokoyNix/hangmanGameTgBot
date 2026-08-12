@@ -5,7 +5,6 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command
 
 from app.services.game_service import GameService
-from app.core.models import GameStatus
 from app.bot.keyboards import new_game_keyboard
 from app.bot.middlewares.thread import ThreadMiddleware
 from app.bot.presenters.game_presenter import (
@@ -56,7 +55,10 @@ async def new_game_handler(callback: CallbackQuery, game_service: GameService) -
     user_id = callback.from_user.id
     
     try:
-        game = game_service.start_game(user_id)
+        session = game_service.start_game(
+            chat_id=callback.message.chat.id,
+            user_id=user_id,
+        )
     except ValueError:
         logger.info(
             'User %s attempted to start a new game '
@@ -71,8 +73,14 @@ async def new_game_handler(callback: CallbackQuery, game_service: GameService) -
 
         return
 
-    await callback.message.answer(
-        render_game_state(game),
+    sent_message = await callback.message.answer(
+        render_game_state(session.game),
+    )
+
+    game_service.set_message_id(
+        chat_id=session.chat_id,
+        user_id=user_id,
+        message_id=sent_message.message_id,
     )
 
     await callback.answer()
@@ -128,9 +136,12 @@ async def guess_handler(message: Message, game_service: GameService) -> None:
         await message.answer('An unexpected game error occured.')
         return
 
-    game = game_service.get_game(user_id)
+    session = game_service.get_session(
+        chat_id=message.chat.id,
+        user_id=user_id,
+    )
 
-    if game is None and outcome is None:
+    if session is None and outcome is None:
         logger.error(
             'Game disappeared unexpectedly for user %s.',
             user_id,
@@ -147,7 +158,7 @@ async def guess_handler(message: Message, game_service: GameService) -> None:
 
     response = render_guess_result(
         result=result,
-        game=game,
+        game=session.game,
         outcome=outcome,
     )
 
