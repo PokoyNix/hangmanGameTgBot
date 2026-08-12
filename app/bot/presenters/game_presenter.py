@@ -36,7 +36,7 @@ def render_guess_result(
         return response
 
     if game is not None:
-        response += f"\n\n{render_game(game)}"
+        response += f"\n\n{render_game_state(game)}"
 
     return response
 
