@@ -4,11 +4,14 @@ from aiogram import Router
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command
 
-from config import settings
 from app.services.game_service import GameService
-from app.core.models import GuessResult, GameStatus
+from app.core.models import GameStatus
 from app.bot.keyboards import new_game_keyboard
 from app.bot.middlewares.thread import ThreadMiddleware
+from app.bot.presenters.game_presenter import (
+    render_game_state,
+    render_guess_result,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -16,14 +19,16 @@ router = Router()
 router.message.middleware(ThreadMiddleware())
 router.callback_query.middleware(ThreadMiddleware())
 
-ALLOWED_THREAD_IDS = settings.ALLOWED_THREAD_IDS
-
 # -------------------------
 # START GAME
 # -------------------------
 
 @router.message(Command('start'))
-async def start_handler(message: Message):
+async def start_handler(message: Message) -> None:
+    """
+    Handle the /start command.
+    """
+
     if message.from_user is None:
         return
 
@@ -40,28 +45,34 @@ async def start_handler(message: Message):
 
 
 @router.callback_query(lambda c: c.data == 'new_game')
-async def new_game_handler(callback: CallbackQuery, game_service: GameService):
+async def new_game_handler(callback: CallbackQuery, game_service: GameService) -> None:
+    """
+    Start a new game for the user.
+    """
+    
+    if callback.from_user is None:
+        return
+
     user_id = callback.from_user.id
     
     try:
         game = game_service.start_game(user_id)
     except ValueError:
-        await callback.answer(
-            'You already have an active game',
-            show_alert=True,
+        logger.info(
+            'User %s attempted to start a new game '
+            'while another game is active.',
+            user_id,
         )
 
-        logger.info(
-            'User %s attempted to start a second game.',
-            user_id,
+        await callback.answer(
+            'You already have an active game.',
+            show_alert=True,
         )
 
         return
 
     await callback.message.answer(
-        f'New game has begun!\n\n'
-        f'{game.masked_word()}\n'
-        f'Attempts: {game.attempts_left()}'
+        render_game_state(game),
     )
 
     await callback.answer()
@@ -71,7 +82,11 @@ async def new_game_handler(callback: CallbackQuery, game_service: GameService):
 # -------------------------
 
 @router.message()
-async def guess_handler(message: Message, game_service: GameService):
+async def guess_handler(message: Message, game_service: GameService) -> None:
+    """
+    Handle a player's letter guess.
+    """
+
     if message.from_user is None:
         return
 
@@ -85,31 +100,32 @@ async def guess_handler(message: Message, game_service: GameService):
 
     # validation: one letter
     if len(text) != 1 or not text.isalpha():
-        await message.answer('Enter exact one letter')
         logger.debug(
             'User %s sent invalid guess: %r',
             user_id,
             text,
         )
-
+        await message.answer(
+            'Enter exactly one letter.'
+        )
         return
 
     # validation: is there a game
     if not game_service.has_active_game(user_id):
-        await message.answer(
-            'Start the game first',
-            reply_markup=new_game_keyboard()
-        )
         logger.debug(
             'User %s tried guessing without active game.',
         )
 
+        await message.answer(
+            'Start the game first.',
+            reply_markup=new_game_keyboard(),
+        )
         return
 
     try:
         result, outcome = game_service.guess(user_id, text)
     except ValueError:
-        await message.answer('Game error')
+        await message.answer('An unexpected game error occured.')
         return
 
     game = game_service.get_game(user_id)
@@ -121,7 +137,7 @@ async def guess_handler(message: Message, game_service: GameService):
         )
 
         await message.answer(
-            'Unexpected error occured.'
+            'An unexpected game error occured.'
         )
         return
 
@@ -129,35 +145,19 @@ async def guess_handler(message: Message, game_service: GameService):
     # Form answer
     # -------------------------
 
-    if result == GuessResult.CORRECT:
-        response = 'There is such letter!'
-    elif result == GuessResult.INCORRECT:
-        response = 'There is not such letter...'
-    elif result == GuessResult.ALREADY_GUESSED:
-        response = 'You already have guessed this letter'
-    else:
-        response = ''
+    response = render_guess_result(
+        result=result,
+        game=game,
+        outcome=outcome,
+    )
 
     # if game is end
-    if outcome:
-        if outcome.status == GameStatus.WON:
-            response += f'\n\nWin!'
-        else:
-            response += f'\n\nLost!'
-        
-        response += f'\nThe word was: {outcome.word}'
-        
+    if outcome is not None:
         await message.answer(
             response,
             reply_markup=new_game_keyboard()
         )
         return
 
-    # usual state
-    response += (
-        f'\n\nWord: {game.masked_word()}'
-        f'\nAttempts: {game.attempts_left()}'
-        f'\nLetters: {game.guessed_letters_str()}'
-    )
     await message.answer(response)
 
