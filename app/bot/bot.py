@@ -2,6 +2,8 @@ import logging
 import asyncio
 from aiogram import Bot, Dispatcher
 from aiogram.types import BotCommand
+from aiogram.enums import ParseMode
+from aiogram.client.default import DefaultBotProperties
 
 from config import settings
 from app.services.game_service import GameService
@@ -18,7 +20,12 @@ async def start_bot() -> None:
     injects application services and starts polling.
     '''
     logger.info('Initializing Telegram bot...')
-    bot = Bot(token=settings.BOT_TOKEN)
+    bot = Bot(
+        token=settings.BOT_TOKEN,
+        default=DefaultBotProperties(
+            parse_mode=ParseMode.HTML,
+        ),
+    )
     dp = Dispatcher()
 
     logger.info('Initializing application services.')
