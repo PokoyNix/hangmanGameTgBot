@@ -1,6 +1,7 @@
 import logging
 
 from aiogram import Router
+from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command
 
@@ -42,6 +43,9 @@ async def start_handler(message: Message) -> None:
         reply_markup=new_game_keyboard()
     )
 
+# -------------------------
+# NEW GAME
+# -------------------------
 
 @router.callback_query(lambda c: c.data == 'new_game')
 async def new_game_handler(callback: CallbackQuery, game_service: GameService) -> None:
@@ -52,18 +56,24 @@ async def new_game_handler(callback: CallbackQuery, game_service: GameService) -
     if callback.from_user is None:
         return
 
+    if callback.message is None:
+        await callback.answer()
+        return
+
     user_id = callback.from_user.id
+    chat_id = callback.message.chat.id
     
     try:
         session = game_service.start_game(
-            chat_id=callback.message.chat.id,
+            chat_id=chat_id,
             user_id=user_id,
         )
     except ValueError:
         logger.info(
             'User %s attempted to start a new game '
-            'while another game is active.',
+            'in chat %s while another game is active.',
             user_id,
+            chat_id,
         )
 
         await callback.answer(
@@ -73,14 +83,21 @@ async def new_game_handler(callback: CallbackQuery, game_service: GameService) -
 
         return
 
-    sent_message = await callback.message.answer(
+    game_message = await callback.message.answer(
         render_game_state(session.game),
     )
 
     game_service.set_message_id(
-        chat_id=session.chat_id,
+        chat_id=chat_id,
         user_id=user_id,
-        message_id=sent_message.message_id,
+        message_id=game_message.message_id,
+    )
+
+    logger.info(
+        'Game message %s created for user %s in chat %s.',
+        game_message.message_id,
+        user_id,
+        chat_id,
     )
 
     await callback.answer()
@@ -99,6 +116,7 @@ async def guess_handler(message: Message, game_service: GameService) -> None:
         return
 
     user_id = message.from_user.id
+    chat_id = message.chat.id
     text = message.text
 
     if not text:
@@ -118,10 +136,18 @@ async def guess_handler(message: Message, game_service: GameService) -> None:
         )
         return
 
+    session = game_service.get_session(
+        chat_id=chat_id,
+        user_id=user_id,
+    )
+
     # validation: is there a game
-    if not game_service.has_active_game(user_id):
+    if session is None or session.game.is_finished():
         logger.debug(
-            'User %s tried guessing without active game.',
+            'User %s attempted to guess without an active game '
+            'in chat %s.',
+            user_id,
+            chat_id,
         )
 
         await message.answer(
@@ -131,30 +157,19 @@ async def guess_handler(message: Message, game_service: GameService) -> None:
         return
 
     try:
-        result, outcome = game_service.guess(user_id, text)
+        result, outcome = game_service.guess(
+            chat_id=chat_id,
+            user_id=user_id,
+            letter=text,
+        )
     except ValueError:
+        logger.exception(
+            'Failed to process guess for user %s in chat %s.',
+            user_id,
+            chat_id,
+        )
         await message.answer('An unexpected game error occured.')
         return
-
-    session = game_service.get_session(
-        chat_id=message.chat.id,
-        user_id=user_id,
-    )
-
-    if session is None and outcome is None:
-        logger.error(
-            'Game disappeared unexpectedly for user %s.',
-            user_id,
-        )
-
-        await message.answer(
-            'An unexpected game error occured.'
-        )
-        return
-
-    # -------------------------
-    # Form answer
-    # -------------------------
 
     response = render_guess_result(
         result=result,
@@ -162,13 +177,50 @@ async def guess_handler(message: Message, game_service: GameService) -> None:
         outcome=outcome,
     )
 
-    # if game is end
-    if outcome is not None:
-        await message.answer(
-            response,
-            reply_markup=new_game_keyboard()
+    # Remove the user's guess message.
+    try:
+        await message.delete()
+    except (TelegramBadRequest, TelegramForbiddenError):
+        logger.warning(
+            'Could not delete guess message %s '
+            'from user %s in chat %s.',
+            message.message_id,
+            user_id,
+            chat_id,
         )
+
+    # Update the existing game message.
+    try:
+        await message.bot.edit_message_text(
+            chat_id=session.chat_id,
+            message_id=session.message_id,
+            text=response,
+            reply_markup=(
+                new_game_keyboard()
+                if outcome is not None
+                else None
+            ),
+        )
+    except TelegramBadRequest:
+        logger.exception(
+            'Failed to update game message %s '
+            'for user %s in chat %s.',
+            session.message_id,
+            user_id,
+            chat_id,
+        )
+
+        await message.answer('An unexpected error occured while updating the game.')
         return
 
-    await message.answer(response)
+    if outcome is not None:
+        game_service.remove_game(
+            chat_id=chat_id,
+            user_id=user_id,
+        )
 
+        logger.info(
+            'Removed completed game for user %s in chat %s.',
+            user_id,
+            chat_id,
+        )

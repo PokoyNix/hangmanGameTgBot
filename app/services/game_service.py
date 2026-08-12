@@ -106,6 +106,9 @@ class GameService:
 
         Returns:
             Guess result and final outcome if the game ended.
+
+        Raises:
+            ValueError: If the user has no active game.
         """
 
         session = self.get_session(chat_id, user_id)
@@ -122,20 +125,20 @@ class GameService:
             result.value,
         )
 
-        if session.game.is_finished():
-            outcome = GameOutcome(
-                status=session.game.status(),
-                word=session.game.reveal_word()
-            )
+        if not session.game.is_finished():
+            return result, None
 
-            logger.info(
-                'Game is finished for user %s in chat %s with status %s',
-                user_id,
-                chat_id,
-                outcome.status.value,
-            )
+        outcome = GameOutcome(
+            status=session.game.status(),
+            word=session.game.reveal_word()
+        )
+
+        logger.info(
+            'Game is finished for user %s in chat %s with status %s',
+            user_id,
+            chat_id,
+            outcome.status.value,
+        )
             
-            return result, outcome
-
-        return result, None
+        return result, outcome
 
