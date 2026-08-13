@@ -5,6 +5,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from aiogram import BaseMiddleware
+from aiogram.enums import ChatType
 from aiogram.types import CallbackQuery, Message, TelegramObject
 
 from config import settings
@@ -31,7 +32,10 @@ class ThreadMiddleware(BaseMiddleware):
                 event.chat.type,
                 event.message_thread_id,
             ):
-                logger.debug('Ignored message outside allowed thread.')
+                logger.debug('Ignoring message %s from chat %s: thread %s is not allowed.',
+                             event.message_id,
+                             event.chat.id,
+                             event.message_thread_id,)
                 return None
         
         elif isinstance(event, CallbackQuery):
@@ -44,7 +48,9 @@ class ThreadMiddleware(BaseMiddleware):
                 message.chat.type,
                 message.message_thread_id,
             ):
-                logger.debug('Ignored callback outside allowed thread.')
+                logger.debug('Ignoring callback from chat %s: thread %s is not allowed.',
+                             message.chat.id,
+                             message.message_thread_id,)
                 return None
 
         return await handler(event, data)
@@ -54,7 +60,7 @@ class ThreadMiddleware(BaseMiddleware):
         chat_type: str,
         thread_id: int | None,
     ) -> bool:
-        if chat_type == 'private':
+        if chat_type == ChatType.PRIVATE:
             return True
 
         return thread_id in settings.ALLOWED_THREAD_IDS

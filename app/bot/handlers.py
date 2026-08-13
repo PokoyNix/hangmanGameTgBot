@@ -180,9 +180,17 @@ async def guess_handler(message: Message, game_service: GameService) -> None:
     # Remove the user's guess message.
     try:
         await message.delete()
-    except (TelegramBadRequest, TelegramForbiddenError):
-        logger.warning(
-            'Could not delete guess message %s '
+    except TelegramBadRequest:
+        logger.exception(
+            'Telegram rejected deletion of message %s '
+            'from user %s in chat %s.',
+            message.message_id,
+            user_id,
+            chat_id,
+        )
+    except TelegramForbiddenError:
+        logger.exception(
+            'Bot has no permission to delete message %s '
             'from user %s in chat %s.',
             message.message_id,
             user_id,
@@ -213,14 +221,3 @@ async def guess_handler(message: Message, game_service: GameService) -> None:
         await message.answer('An unexpected error occured while updating the game.')
         return
 
-    if outcome is not None:
-        game_service.remove_game(
-            chat_id=chat_id,
-            user_id=user_id,
-        )
-
-        logger.info(
-            'Removed completed game for user %s in chat %s.',
-            user_id,
-            chat_id,
-        )
