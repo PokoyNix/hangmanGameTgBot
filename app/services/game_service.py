@@ -139,6 +139,8 @@ class GameService:
             chat_id,
             outcome.status.value,
         )
-            
+
+        self.remove_game(chat_id, user_id)
+        
         return result, outcome
 
