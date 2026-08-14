@@ -122,20 +122,6 @@ async def guess_handler(message: Message, game_service: GameService) -> None:
     if not text:
         return
 
-    text = text.strip().lower()
-
-    # validation: one letter
-    if len(text) != 1 or not text.isalpha():
-        logger.debug(
-            'User %s sent invalid guess: %r',
-            user_id,
-            text,
-        )
-        await message.answer(
-            'Enter exactly one letter.'
-        )
-        return
-
     session = game_service.get_session(
         chat_id=chat_id,
         user_id=user_id,

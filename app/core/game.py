@@ -1,4 +1,5 @@
 from .models import GameStatus, GuessResult
+from .exceptions import InvalidGuessError
 
 
 class HangmanGame:
@@ -78,7 +79,9 @@ class HangmanGame:
         letter = letter.lower().strip()
 
         if len(letter) != 1 or not letter.isalpha():
-            raise ValueError("Input must be a single letter")
+            raise InvalidGuessError(
+                "Input must be a single letter."
+            )
 
         return letter
 
